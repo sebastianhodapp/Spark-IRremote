@@ -1,0 +1,7 @@
+{
+  "name": "Spark-IRemote",
+  "author": "Sebastian Hodapp <spark@sebastian-hodapp.de>",
+  "license": "MIT",
+  "version": "0.0.10",
+  "description": "Simple IR RGB Led library"
+}

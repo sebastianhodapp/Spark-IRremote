@@ -17,8 +17,8 @@
  * LG added by Darryl Smith (based on the JVC protocol)
  */
 
-#include "Spark-IRremote.h"
-#include "IRremoteInt.h"
+#include "Spark-IRemote.h"
+#include "IRemoteInt.h"
 
 // Provides ISR
 #include <avr/interrupt.h>

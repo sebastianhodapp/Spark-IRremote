@@ -1,5 +1,5 @@
 /*
- * IRremote
+ * IRemote
  * Version 0.1 July, 2009
  * Copyright 2009 Ken Shirriff
  * For details, see http://arcfn.com/2009/08/multi-protocol-infrared-remote-library.htm http://arcfn.com
@@ -10,91 +10,21 @@
  * Also influenced by http://zovirl.com/2008/11/12/building-a-universal-remote-with-an-arduino/
  *
  * JVC and Panasonic protocol added by Kristian Lauszus (Thanks to zenwheel and other people at the original blog post)
-* LG added by Darryl Smith (based on the JVC protocol)
+ *
+ * Modified by Sebastian Hodapp for Spark
  */
 
 #ifndef IRremote_h
 #define IRremote_h
 
-// The following are compile-time library options.
-// If you change them, recompile the library.
-// If DEBUG is defined, a lot of debugging output will be printed during decoding.
-// TEST must be defined for the IRtest unittests to work.  It will make some
-// methods virtual, which will be slightly slower, which is why it is optional.
-// #define DEBUG
-// #define TEST
-
-// Results returned from the decoder
-class decode_results {
-public:
-  int decode_type; // NEC, SONY, RC5, UNKNOWN
-  union { // This is used for decoding Panasonic and Sharp data
-    unsigned int panasonicAddress;
-    unsigned int sharpAddress;
-  };
-  unsigned long value; // Decoded value
-  int bits; // Number of bits in decoded value
-  volatile unsigned int *rawbuf; // Raw intervals in .5 us ticks
-  int rawlen; // Number of records in rawbuf.
-};
-
-// Values for decode_type
-#define NEC 1
-#define SONY 2
-#define RC5 3
-#define RC6 4
-#define DISH 5
-#define SHARP 6
-#define PANASONIC 7
-#define JVC 8
-#define SANYO 9
-#define MITSUBISHI 10
-#define SAMSUNG 11
-#define LG 12
-#define UNKNOWN -1
-
-// Decoded value for NEC when a repeat code is received
-#define REPEAT 0xffffffff
-
-// main class for receiving IR
-class IRrecv
-{
-public:
-  IRrecv(int recvpin);
-  void blink13(int blinkflag);
-  int decode(decode_results *results);
-  void enableIRIn();
-  void resume();
-private:
-  // These are called by decode
-  int getRClevel(decode_results *results, int *offset, int *used, int t1);
-  long decodeNEC(decode_results *results);
-  long decodeSony(decode_results *results);
-  long decodeSanyo(decode_results *results);
-  long decodeMitsubishi(decode_results *results);
-  long decodeRC5(decode_results *results);
-  long decodeRC6(decode_results *results);
-  long decodePanasonic(decode_results *results);
-  long decodeLG(decode_results *results);
-  long decodeJVC(decode_results *results);
-  long decodeSAMSUNG(decode_results *results);
-  long decodeHash(decode_results *results);
-  int compare(unsigned int oldval, unsigned int newval);
-
-} 
-;
-
-// Only used for testing; can remove virtual for shorter code
-#ifdef TEST
-#define VIRTUAL virtual
-#else
-#define VIRTUAL
-#endif
-
 class IRsend
 {
+  const int irPin;
+  int burstWait;
+  int burstLength;
+
 public:
-  IRsend() {}
+  IRsend(int irPin);
   void sendNEC(unsigned long data, int nbits);
   void sendSony(unsigned long data, int nbits);
   // Neither Sanyo nor Mitsubishi send is implemented yet
@@ -103,26 +33,90 @@ public:
   void sendRaw(unsigned int buf[], int len, int hz);
   void sendRC5(unsigned long data, int nbits);
   void sendRC6(unsigned long data, int nbits);
+  void sendSharp(unsigned long data, int nbits);
   void sendDISH(unsigned long data, int nbits);
-  void sendSharp(unsigned int address, unsigned int command);
-  void sendSharpRaw(unsigned long data, int nbits);
   void sendPanasonic(unsigned int address, unsigned long data);
   void sendJVC(unsigned long data, int nbits, int repeat); // *Note instead of sending the REPEAT constant if you want the JVC repeat signal sent, send the original code value and change the repeat argument from 0 to 1. JVC protocol repeats by skipping the header NOT by sending a separate code value like NEC does.
-  // private:
-  void sendSAMSUNG(unsigned long data, int nbits);
+private:
   void enableIROut(int khz);
-  VIRTUAL void mark(int usec);
-  VIRTUAL void space(int usec);
+  void mark(int usec);
+  void space(int usec);
 }
 ;
 
-// Some useful constants
+// Constants for sending IR codes
+#define NEC_HDR_MARK  9000
+#define NEC_HDR_SPACE 4500
+#define NEC_BIT_MARK  560
+#define NEC_ONE_SPACE 1600
+#define NEC_ZERO_SPACE  560
+#define NEC_RPT_SPACE 2250
 
-#define USECPERTICK 50  // microseconds per clock interrupt tick
-#define RAWBUF 100 // Length of raw duration buffer
+#define SONY_HDR_MARK 2400
+#define SONY_HDR_SPACE  600
+#define SONY_ONE_MARK 1200
+#define SONY_ZERO_MARK  600
+#define SONY_RPT_LENGTH 45000
+#define SONY_DOUBLE_SPACE_USECS  500  // usually ssee 713 - not using ticks as get number wrapround
 
-// Marks tend to be 100us too long, and spaces 100us too short
-// when received due to sensor lag.
-#define MARK_EXCESS 100
+// SA 8650B
+#define SANYO_HDR_MARK  3500  // seen range 3500
+#define SANYO_HDR_SPACE 950 //  seen 950
+#define SANYO_ONE_MARK  2400 // seen 2400  
+#define SANYO_ZERO_MARK 700 //  seen 700
+#define SANYO_DOUBLE_SPACE_USECS  800  // usually ssee 713 - not using ticks as get number wrapround
+#define SANYO_RPT_LENGTH 45000
+
+// Mitsubishi RM 75501
+// 14200 7 41 7 42 7 42 7 17 7 17 7 18 7 41 7 18 7 17 7 17 7 18 7 41 8 17 7 17 7 18 7 17 7 
+
+// #define MITSUBISHI_HDR_MARK  250  // seen range 3500
+#define MITSUBISHI_HDR_SPACE  350 //  7*50+100
+#define MITSUBISHI_ONE_MARK 1950 // 41*50-100
+#define MITSUBISHI_ZERO_MARK  750 // 17*50-100
+// #define MITSUBISHI_DOUBLE_SPACE_USECS  800  // usually ssee 713 - not using ticks as get number wrapround
+// #define MITSUBISHI_RPT_LENGTH 45000
+
+
+#define RC5_T1    889
+#define RC5_RPT_LENGTH  46000
+
+#define RC6_HDR_MARK  2666
+#define RC6_HDR_SPACE 889
+#define RC6_T1    444
+#define RC6_RPT_LENGTH  46000
+
+#define SHARP_BIT_MARK 245
+#define SHARP_ONE_SPACE 1805
+#define SHARP_ZERO_SPACE 795
+#define SHARP_GAP 600000
+#define SHARP_TOGGLE_MASK 0x3FF
+#define SHARP_RPT_SPACE 3000
+
+#define DISH_HDR_MARK 400
+#define DISH_HDR_SPACE 6100
+#define DISH_BIT_MARK 400
+#define DISH_ONE_SPACE 1700
+#define DISH_ZERO_SPACE 2800
+#define DISH_RPT_SPACE 6200
+#define DISH_TOP_BIT 0x8000
+
+#define PANASONIC_HDR_MARK 3502
+#define PANASONIC_HDR_SPACE 1750
+#define PANASONIC_BIT_MARK 502
+#define PANASONIC_ONE_SPACE 1244
+#define PANASONIC_ZERO_SPACE 400
+
+#define JVC_HDR_MARK 8000
+#define JVC_HDR_SPACE 4000
+#define JVC_BIT_MARK 600
+#define JVC_ONE_SPACE 1600
+#define JVC_ZERO_SPACE 550
+#define JVC_RPT_LENGTH 60000
+
+#define SHARP_BITS 15
+#define DISH_BITS 16
+
+#define TOPBIT 0x80000000
 
 #endif

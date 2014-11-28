@@ -12,6 +12,23 @@
  *
  * JVC and Panasonic protocol added by Kristian Lauszus (Thanks to zenwheel and other people at the original blog post)
  */
+ 
+ /*
+  * IRremote.h - IR Remote Protocol Library for Spark.
+  * Originally created for Arduino by Ken Shirriff,  2009
+   * For details, see http://arcfn.com/2009/08/multi-protocol-infrared-remote-library.html
+  *
+  * Modified by Paul Stoffregen <paul@pjrc.com> to support other boards and timers
+  *
+  * Interrupt code based on NECIRrcv by Joe Knapp
+  * http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1210243556
+  * Also influenced by http://zovirl.com/2008/11/12/building-a-universal-remote-with-an-arduino/
+  *
+  * JVC and Panasonic protocol added by Kristian Lauszus (Thanks to zenwheel and other people at the original blog post)
+  *
+  * Ported for Spark by Sebastian Hodapp, November 2014
+  * Released into the public domain.
+*/
 
 #ifndef IRremoteint_h
 #define IRremoteint_h

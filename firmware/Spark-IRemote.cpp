@@ -16,10 +16,10 @@
  *
  * JVC and Panasonic protocol added by Kristian Lauszus (Thanks to zenwheel and other people at the original blog post)
  *
- * Again modified by Sebastian Hodapp, 2014
+ * Modified by Sebastian Hodapp, 2014 to make it compatible with the current Spark Library approach
  */
 
-#include "IRemote.h"
+#include "Spark-IRemote.h"
 #include "application.h"
 
 IRsend::IRsend(int irPin) : irPin(irPin) {};
